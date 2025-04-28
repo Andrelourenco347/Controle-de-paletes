@@ -29,7 +29,10 @@
   <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-firestore.js"></script>
 
-  <script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.2/firebase-app.js";
+    import { getFirestore } from "https://www.gstatic.com/firebasejs/10.5.2/firebase-firestore.js";
+
     const firebaseConfig = {
       apiKey: "AIzaSyAhil1s4MdrxKhj0eosz28OnCizLiPp54M",
       authDomain: "controle-de-pallets-4db16.firebaseapp.com",
@@ -41,7 +44,7 @@
     };
 
     // Inicializa Firebase
-    firebase.initializeApp(firebaseConfig);
+    const app = initializeApp(firebaseConfig);
     const db = firebase.firestore();
   </script>
 </head>

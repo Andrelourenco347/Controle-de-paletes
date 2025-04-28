@@ -161,15 +161,17 @@
       setTimeout(() => confirmacao.style.display = 'none', 2000);
     }
 
-    async function carregarFirestore() {
-      const doc = await db.collection("controlePallets").doc("dados").get();
-      if (doc.exists) {
-	const dados = doc.data();
-        Object.keys(dados).forEach(id => {
-          const tbody = document.getElementById(id);
-          if (tbody) tbody.innerHTML = dados[id];
+    function carregarFirestoreTempoReal() {
+      db.collection("controlePallets").doc("dados")
+        .onSnapshot((doc) => {
+      	  if (doc.exists) {
+	    const dados = doc.data();
+            Object.keys(dados).forEach(id => {
+              const tbody = document.getElementById(id);
+              if (tbody) tbody.innerHTML = dados[id];
+            });
+          }
         });
-      }
     }
 
     function mostrarTab(transportadora) {
@@ -227,7 +229,6 @@
 
     function cancelarEdicao(linha) {
       const btnEditar = linha.querySelector('.edit-btn');
-      carregarFirestore();
       mostrarTab(document.querySelector('.tab.active').id);
       if (btnEditar) btnEditar.innerText = 'Editar';
     }
@@ -346,7 +347,7 @@
       mostrarTab('Resumo');
     }
 
-    carregarFirestore();
+    carregarFirestoreTempoReal();
     mostrarTab('YARA');
   </script>
 </body>

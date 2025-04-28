@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Controle de Pallets e Chapatex</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }
+    h1 { text-align: center; }
+    .container { background: white; padding: 20px; border-radius: 8px; max-width: 1200px; margin: auto; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    form { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
+    form input, form select, button { padding: 8px; border: 1px solid #ccc; border-radius: 5px; }
+    .tabs { margin-top: 20px; }
+    .tab { display: none; }
+    .tab.active { display: block; }
+    .tab-buttons { display: flex; gap: 10px; justify-content: center; margin-bottom: 10px; flex-wrap: wrap; }
+    .tab-buttons button { padding: 10px 20px; border: none; background-color: #027b00; color: white; border-radius: 5px; cursor: pointer; transition: box-shadow 0.3s, transform 0.3s; }
+    .tab-buttons button.active { box-shadow: 0 0 10px #027b00, 0 0 20px #027b00; transform: scale(1.05); }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+    th { background-color: #027b00; color: white; }
+    .delete-btn, .edit-btn, .cancel-btn { cursor: pointer; font-weight: bold; }
+    .edit-btn { color: blue; margin-right: 5px; }
+    .delete-btn { color: red; margin-left: 5px; }
+    .cancel-btn { color: orange; margin-left: 5px; }
+    #confirmacao { text-align: center; margin-top: 10px; color: green; font-weight: bold; display: none; }
+  </style>
+
+  <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-firestore.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAhil1s4MdrxKhj0eosz28OnCizLiPp54M",
+      authDomain: "controle-de-pallets-4db16.firebaseapp.com",
+      projectId: "controle-de-pallets-4db16",
+      storageBucket: "controle-de-pallets-4db16.firebasestorage.app",
+      messagingSenderId: "656048809773",
+      appId: "1:656048809773:web:cfdc3a77b5282552a295a4",
+      measurementId: "G-SZT7NWRWEG"
+    };
+
+    // Inicializa Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+  </script>
+</head>
+<body>
+  <div class="container">
+    <h1>Controle de Pallets e Chapatex</h1>
+
+    <form id="form-movimentacao">
+      <input type="date" id="data" required>
+      <input type="text" id="liquidacao" placeholder="Liquidação">
+      <input type="text" id="cliente" placeholder="Cliente">
+      <select id="transportadora" required onchange="mostrarTab(this.value)">
+        <option value="">Transportadora</option>
+        <option value="YARA">YARA</option>
+        <option value="SANTOS_E_ANDRADE">SANTOS E ANDRADE</option>
+        <option value="V-CARGO">V-CARGO</option>
+        <option value="LEÃO">LEÃO</option>
+        <option value="SIX">SIX</option>
+      </select>
+      <input type="number" id="pallets" placeholder="Qtd Pallets" required>
+      <input type="number" id="chapatex" placeholder="Qtd Chapatex" required>
+      <select id="tipo-movimentacao" required>
+        <option value="">Tipo de movimentação</option>
+        <option value="Envio">Envio</option>
+        <option value="Devolução">Devolução</option>
+        <option value="Vale Pallet">Vale</option>
+        <option value="Vendido">Vendido</option>
+      </select>
+      <button type="submit">Adicionar</button>
+    </form>
+
+    <div class="tabs">
+      <div class="tab-buttons">
+        <button id="btn-YARA" onclick="mostrarTab('YARA')">YARA</button>
+        <button id="btn-SANTOS_E_ANDRADE" onclick="mostrarTab('SANTOS_E_ANDRADE')">SANTOS E ANDRADE</button>
+        <button id="btn-V-CARGO" onclick="mostrarTab('V-CARGO')">V-CARGO</button>
+        <button id="btn-LEÃO" onclick="mostrarTab('LEÃO')">LEÃO</button>
+        <button id="btn-SIX" onclick="mostrarTab('SIX')">SIX</button>
+        <button id="btn-Resumo" onclick="mostrarResumo()">Resumo</button>
+      </div>
+
+      <!-- Transportadoras -->
+      <div id="YARA" class="tab">
+        <table><thead><tr><th>Data</th><th>Liquidação</th><th>Cliente</th><th>Tipo de movimentação</th><th>Qtd Pallets</th><th>Qtd Chapatex</th><th>Valor Total (R$)</th><th>Ação</th></tr></thead><tbody id="tabela-YARA"></tbody></table>
+      </div>
+      <div id="SANTOS_E_ANDRADE" class="tab">
+        <table><thead><tr><th>Data</th><th>Liquidação</th><th>Cliente</th><th>Tipo de movimentação</th><th>Qtd Pallets</th><th>Qtd Chapatex</th><th>Valor Total (R$)</th><th>Ação</th></tr></thead><tbody id="tabela-SANTOS_E_ANDRADE"></tbody></table>
+      </div>
+      <div id="V-CARGO" class="tab">
+        <table><thead><tr><th>Data</th><th>Liquidação</th><th>Cliente</th><th>Tipo de movimentação</th><th>Qtd Pallets</th><th>Qtd Chapatex</th><th>Valor Total (R$)</th><th>Ação</th></tr></thead><tbody id="tabela-V-CARGO"></tbody></table>
+      </div>
+      <div id="LEÃO" class="tab">
+        <table><thead><tr><th>Data</th><th>Liquidação</th><th>Cliente</th><th>Tipo de movimentação</th><th>Qtd Pallets</th><th>Qtd Chapatex</th><th>Valor Total (R$)</th><th>Ação</th></tr></thead><tbody id="tabela-LEÃO"></tbody></table>
+      </div>
+      <div id="SIX" class="tab">
+        <table><thead><tr><th>Data</th><th>Liquidação</th><th>Cliente</th><th>Tipo de movimentação</th><th>Qtd Pallets</th><th>Qtd Chapatex</th><th>Valor Total (R$)</th><th>Ação</th></tr></thead><tbody id="tabela-SIX"></tbody></table>
+      </div>
+
+      <!-- Resumo -->
+      <div id="Resumo" class="tab">
+        <h2>Resumo de Quantidades</h2>
+        <table id="tabela-resumo-quantidades">
+          <thead>
+            <tr>
+              <th>Transportadora</th>
+              <th>Paletes Enviados</th>
+              <th>Chapatex Enviados</th>
+              <th>Paletes Devolvidos</th>
+              <th>Chapatex Devolvidos</th>
+              <th>Paletes Vale</th>
+              <th>Chapatex Vale</th>
+	      <th>Paletes Vendidos</th>
+	      <th>Chapatex Vendidos</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+
+        <h2>Resumo de Valores</h2>
+        <table id="tabela-resumo-valores">
+          <thead>
+            <tr>
+              <th>Transportadora</th>
+              <th>Paletes Enviados (R$)</th>
+              <th>Chapatex Enviados (R$)</th>
+              <th>Paletes Devolvidos (R$)</th>
+              <th>Chapatex Devolvidos (R$)</th>
+              <th>Paletes Vale (R$)</th>
+              <th>Chapatex Vale (R$)</th>
+	      <th>Paletes Vendidos (R$)</th>
+              <th>Chapatex Vendidos (R$)</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="confirmacao">Alterações salvas!</div>
+  </div>
+
+  <script>
+    const form = document.getElementById('form-movimentacao');
+
+    async function salvarFirestore() {
+      const dados = {};
+      document.querySelectorAll('tbody').forEach(tbody => {
+        dados[tbody.id] = tbody.innerHTML;
+      });
+      await db.collection("controlePallets").doc("dados").set(dados);
+      mostrarConfirmacao();
+    }
+
+    function mostrarConfirmacao() {
+      const confirmacao = document.getElementById('confirmacao');
+      confirmacao.style.display = 'block';
+      setTimeout(() => confirmacao.style.display = 'none', 2000);
+    }
+
+    async function carregarFirestore() {
+      const doc = await db.collection("controlePallets").doc("dados").get();
+      if (doc.exists) {
+	const dados = doc.data();
+        Object.keys(dados).forEach(id => {
+          const tbody = document.getElementById(id);
+          if (tbody) tbody.innerHTML = dados[id];
+        });
+      }
+    }
+
+    function mostrarTab(transportadora) {
+      const idTransportadora = transportadora.replace(/\s+/g, '_');
+      document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+      document.querySelectorAll('.tab-buttons button').forEach(btn => btn.classList.remove('active'));
+      if (document.getElementById(idTransportadora)) {
+        document.getElementById(idTransportadora).classList.add('active');
+        const btn = document.getElementById('btn-' + idTransportadora);
+        if (btn) btn.classList.add('active');
+      }
+    }
+
+    function deletarLinha(btn) {
+      const linha = btn.parentNode.parentNode;
+      linha.remove();
+      salvarFirestore()
+    }
+
+    function editarLinha(btn) {
+      const linha = btn.parentNode.parentNode;
+      const celulas = linha.querySelectorAll('td');
+      if (btn.innerText === 'Editar') {
+        celulas.forEach((celula, index) => {
+          if (index < 6) {
+            const valorAtual = celula.innerText;
+            celula.innerHTML = `<input type="text" value="${valorAtual}" style="width: 90%;">`;
+          }
+        });
+        btn.innerText = 'Salvar';
+        if (!linha.querySelector('.cancel-btn')) {
+          const cancelar = document.createElement('span');
+          cancelar.innerText = 'Cancelar';
+          cancelar.className = 'cancel-btn';
+          cancelar.onclick = () => cancelarEdicao(linha);
+          btn.parentNode.appendChild(cancelar);
+        }
+      } else {
+        celulas.forEach((celula, index) => {
+          if (index < 6) {
+            const input = celula.querySelector('input');
+            celula.innerText = input.value;
+          }
+        });
+        const pallets = parseInt(celulas[4].innerText) || 0;
+        const chapatex = parseInt(celulas[5].innerText) || 0;
+        const valorTotal = (pallets * 10) + (chapatex * 4);
+        celulas[6].innerText = `R$ ${valorTotal.toFixed(2)}`;
+        btn.innerText = 'Editar';
+        const cancelar = btn.parentNode.querySelector('.cancel-btn');
+        if (cancelar) cancelar.remove();
+        salvarFirestore()
+      }
+    }
+
+    function cancelarEdicao(linha) {
+      const btnEditar = linha.querySelector('.edit-btn');
+      carregarFirestore();
+      mostrarTab(document.querySelector('.tab.active').id);
+      if (btnEditar) btnEditar.innerText = 'Editar';
+    }
+
+    form.addEventListener('submit', function(event) {
+      event.preventDefault();
+      let data = document.getElementById('data').value;
+      if (data) {
+      	const partes = data.split('-');
+      	data = `${partes[2]}/${partes[1]}/${partes[0]}`;
+      }
+      const liquidacao = document.getElementById('liquidacao').value;
+      const cliente = document.getElementById('cliente').value;
+      const tipoMovimentacao = document.getElementById('tipo-movimentacao').value;
+      const transportadora = document.getElementById('transportadora').value;
+      const pallets = parseInt(document.getElementById('pallets').value) || 0;
+      const chapatex = parseInt(document.getElementById('chapatex').value) || 0;
+	
+      const valorTotal = (pallets * 10) + (chapatex * 4);
+
+      const novaLinha = `<tr>
+        <td>${data}</td>
+        <td>${liquidacao}</td>
+        <td>${cliente}</td>
+        <td>${tipoMovimentacao}</td>
+        <td>${pallets}</td>
+        <td>${chapatex}</td>
+        <td>R$ ${valorTotal.toFixed(2)}</td>
+        <td><span class="edit-btn" onclick="editarLinha(this)">Editar</span> | <span class="delete-btn" onclick="deletarLinha(this)">Excluir</span></td>
+      </tr>`;
+
+      const idTransportadora = transportadora.replace(/\s+/g, '_');
+      const tabelaCorpo = document.getElementById(`tabela-${transportadora}`);
+      if (tabelaCorpo) {
+        tabelaCorpo.innerHTML += novaLinha;
+      }
+      form.reset();
+      salvarFirestore()
+    });
+
+    function mostrarResumo() {
+      const transportadoras = ["YARA", "SANTOS_E_ANDRADE", "V-CARGO", "LEÃO", "SIX"];
+      const resumoQuantidades = {};
+      const resumoValores = {};
+
+      transportadoras.forEach(transp => {
+        resumoQuantidades[transp] = { envio: { pallets: 0, chapatex: 0 }, devolucao: { pallets: 0, chapatex: 0 }, vale: { pallets: 0, chapatex: 0 }, vendido: { pallets: 0, chapatex: 0 } };
+	resumoValores[transp] = { envio: { pallets: 0, chapatex: 0 }, devolucao: { pallets: 0, chapatex: 0 }, vale: { pallets: 0, chapatex: 0 }, vendido: { pallets: 0, chapatex: 0 } };
+
+        document.querySelectorAll(`#tabela-${transp} tr`).forEach(linha => {
+          const celulas = linha.querySelectorAll('td');
+          const tipo = celulas[3]?.innerText;
+          const pallets = parseInt(celulas[4]?.innerText) || 0;
+          const chapatex = parseInt(celulas[5]?.innerText) || 0;
+
+          if (tipo === "Envio") {
+            resumoQuantidades[transp].envio.pallets += pallets;
+            resumoQuantidades[transp].envio.chapatex += chapatex;
+          } else if (tipo === "Devolução") {
+            resumoQuantidades[transp].devolucao.pallets += pallets;
+            resumoQuantidades[transp].devolucao.chapatex += chapatex;
+          } else if (tipo === "Vale") {
+            resumoQuantidades[transp].vale.pallets += pallets;
+            resumoQuantidades[transp].vale.chapatex += chapatex;
+          } else if (tipo === "Vendido") { 
+  	    resumoQuantidades[transp].vendido.pallets += pallets;
+  	    resumoQuantidades[transp].vendido.chapatex += chapatex;
+	  }
+
+          resumoValores[transp].envio.pallets = resumoQuantidades[transp].envio.pallets * 10;
+          resumoValores[transp].envio.chapatex = resumoQuantidades[transp].envio.chapatex * 4;
+          resumoValores[transp].devolucao.pallets = resumoQuantidades[transp].devolucao.pallets * 10;
+          resumoValores[transp].devolucao.chapatex = resumoQuantidades[transp].devolucao.chapatex * 4;
+          resumoValores[transp].vale.pallets = resumoQuantidades[transp].vale.pallets * 10;
+          resumoValores[transp].vale.chapatex = resumoQuantidades[transp].vale.chapatex * 4;
+	  resumoValores[transp].vendido.pallets = resumoQuantidades[transp].vendido.pallets * 10;
+          resumoValores[transp].vendido.chapatex = resumoQuantidades[transp].vendido.chapatex * 4;
+        });
+      });
+
+      const corpoQuantidades = document.querySelector('#tabela-resumo-quantidades tbody');
+      const corpoValores = document.querySelector('#tabela-resumo-valores tbody');
+      corpoQuantidades.innerHTML = '';
+      corpoValores.innerHTML = '';
+
+      transportadoras.forEach(transp => {
+        corpoQuantidades.innerHTML += `
+          <tr>
+            <td>${transp.replace(/_/g, ' ')}</td>
+            <td>${resumoQuantidades[transp].envio.pallets}</td>
+            <td>${resumoQuantidades[transp].envio.chapatex}</td>
+            <td>${resumoQuantidades[transp].devolucao.pallets}</td>
+            <td>${resumoQuantidades[transp].devolucao.chapatex}</td>
+            <td>${resumoQuantidades[transp].vale.pallets}</td>
+            <td>${resumoQuantidades[transp].vale.chapatex}</td>
+	    <td>${resumoQuantidades[transp].vendido.pallets}</td>
+            <td>${resumoQuantidades[transp].vendido.chapatex}</td>
+          </tr>
+        `;
+
+        corpoValores.innerHTML += `
+          <tr>
+            <td>${transp.replace(/_/g, ' ')}</td>
+            <td>R$ ${resumoValores[transp].envio.pallets.toFixed(2)}</td>
+            <td>R$ ${resumoValores[transp].envio.chapatex.toFixed(2)}</td>
+            <td>R$ ${resumoValores[transp].devolucao.pallets.toFixed(2)}</td>
+            <td>R$ ${resumoValores[transp].devolucao.chapatex.toFixed(2)}</td>
+            <td>R$ ${resumoValores[transp].vale.pallets.toFixed(2)}</td>
+            <td>R$ ${resumoValores[transp].vale.chapatex.toFixed(2)}</td>
+	    <td>R$ ${resumoValores[transp].vendido.pallets.toFixed(2)}</td>
+            <td>R$ ${resumoValores[transp].vendido.chapatex.toFixed(2)}</td>
+          </tr>
+        `;
+      });
+
+      mostrarTab('Resumo');
+    }
+
+    carregarFirestore();
+    mostrarTab('YARA');
+  </script>
+</body>
+</html>
